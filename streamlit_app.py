@@ -477,4 +477,571 @@ if st.sidebar.button("🧹 Clear Chat"):
 
     st.rerun()
 
-st.sidebar.success("✅ Gemini 3.6 Flash Connected")
+st.sidebar.success("✅ Gemini 3.6 Flash Connected")# ==========================================================
+# EXTRA IMPORTS
+# ==========================================================
+
+import pandas as pd
+import plotly.express as px
+from fpdf import FPDF
+
+try:
+    from streamlit_mic_recorder import speech_to_text
+    MIC_AVAILABLE = True
+except Exception:
+    MIC_AVAILABLE = False
+
+
+# ==========================================================
+# SESSION VARIABLES
+# ==========================================================
+
+if "xp" not in st.session_state:
+    st.session_state.xp = 0
+
+if "streak" not in st.session_state:
+    st.session_state.streak = 1
+
+if "theme" not in st.session_state:
+    st.session_state.theme = "Light"
+
+
+# ==========================================================
+# VOICE INPUT
+# ==========================================================
+
+st.sidebar.divider()
+st.sidebar.subheader("🎤 Voice Conversation")
+
+if MIC_AVAILABLE:
+
+    speech = speech_to_text(
+        language="en",
+        start_prompt="🎤 Start",
+        stop_prompt="⏹ Stop",
+        key="speech"
+    )
+
+    if speech:
+
+        st.sidebar.success("Voice Captured")
+
+        st.sidebar.write(speech)
+
+else:
+
+    st.sidebar.info(
+        "Install streamlit-mic-recorder for voice input."
+    )
+
+
+# ==========================================================
+# THEME
+# ==========================================================
+
+st.sidebar.divider()
+
+st.session_state.theme = st.sidebar.radio(
+
+    "🎨 Theme",
+
+    ["Light", "Dark"]
+
+)
+
+if st.session_state.theme == "Dark":
+
+    st.markdown("""
+<style>
+
+.stApp{
+background:#0e1117;
+color:white;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# ==========================================================
+# PROGRESS DASHBOARD
+# ==========================================================
+
+st.divider()
+
+st.header("📈 Learning Dashboard")
+
+total_messages = len(st.session_state.messages)
+
+total_words = len(st.session_state.vocabulary)
+
+st.session_state.xp = total_messages * 5 + total_words * 3
+
+c1, c2, c3 = st.columns(3)
+
+c1.metric(
+    "⭐ XP",
+    st.session_state.xp
+)
+
+c2.metric(
+    "🔥 Streak",
+    st.session_state.streak
+)
+
+c3.metric(
+    "📚 Words Learned",
+    total_words
+)
+
+
+progress = pd.DataFrame({
+
+    "Metric":[
+        "Messages",
+        "Vocabulary",
+        "XP"
+    ],
+
+    "Value":[
+        total_messages,
+        total_words,
+        st.session_state.xp
+    ]
+
+})
+
+fig = px.bar(
+
+    progress,
+
+    x="Metric",
+
+    y="Value",
+
+    title="Learning Progress"
+
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
+
+
+# ==========================================================
+# ACHIEVEMENTS
+# ==========================================================
+
+st.subheader("🏆 Achievements")
+
+if st.session_state.xp >= 50:
+    st.success("🥉 Bronze Learner")
+
+if st.session_state.xp >= 150:
+    st.success("🥈 Silver Learner")
+
+if st.session_state.xp >= 300:
+    st.success("🥇 Gold Learner")
+
+if st.session_state.xp >= 500:
+    st.success("💎 Diamond Learner")
+
+
+# ==========================================================
+# EXPORT CHAT
+# ==========================================================
+
+st.divider()
+
+if st.button("📄 Export Chat as PDF"):
+
+    pdf = FPDF()
+
+    pdf.add_page()
+
+    pdf.set_font("Helvetica", size=12)
+
+    pdf.cell(
+        200,
+        10,
+        "AI English Tutor Chat",
+        ln=True
+    )
+
+    pdf.ln(5)
+
+    for msg in st.session_state.messages:
+
+        role = msg["role"].upper()
+
+        text = msg["content"]
+
+        pdf.multi_cell(
+
+            0,
+
+            8,
+
+            f"{role}: {text}"
+
+        )
+
+        pdf.ln(2)
+
+    pdf.output("chat_history.pdf")
+
+    with open("chat_history.pdf", "rb") as f:
+
+        st.download_button(
+
+            "⬇ Download PDF",
+
+            f,
+
+            file_name="chat_history.pdf",
+
+            mime="application/pdf"
+
+        )
+
+
+# ==========================================================
+# DAILY ENGLISH TIP
+# ==========================================================
+
+tips = [
+
+    "Read one English article every day.",
+
+    "Learn five new words daily.",
+
+    "Watch English videos with subtitles.",
+
+    "Think in English instead of translating.",
+
+    "Speak aloud for ten minutes every day."
+
+]
+
+import random
+
+st.info(
+    "💡 Daily Tip: " + random.choice(tips)
+)
+
+
+# ==========================================================
+# FOOTER
+# ==========================================================
+
+st.divider()
+
+st.caption(
+    "🚀 Powered by Google Gemini 3.6 Flash | Built with Streamlit"
+)# ==========================================================
+# EXTRA IMPORTS
+# ==========================================================
+
+import os
+import json
+import random
+import datetime
+
+
+# ==========================================================
+# SESSION VARIABLES
+# ==========================================================
+
+if "quiz_score" not in st.session_state:
+    st.session_state.quiz_score = 0
+
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+
+# ==========================================================
+# AI AVATAR
+# ==========================================================
+
+st.markdown("""
+<div style='text-align:center;font-size:80px'>
+🤖
+</div>
+""", unsafe_allow_html=True)
+
+
+# ==========================================================
+# TYPING ANIMATION
+# ==========================================================
+
+typing_placeholder = st.empty()
+
+typing_placeholder.markdown(
+"""
+<div style="font-size:18px;color:gray">
+AI is ready to help you...
+</div>
+""",
+unsafe_allow_html=True
+)
+
+
+# ==========================================================
+# TRANSLATION
+# ==========================================================
+
+st.divider()
+
+st.subheader("🌍 Translate English")
+
+translate_text = st.text_area(
+    "Enter English text"
+)
+
+language = st.selectbox(
+    "Translate To",
+    [
+        "Hindi",
+        "French",
+        "German",
+        "Spanish",
+        "Japanese",
+        "Chinese"
+    ]
+)
+
+if st.button("Translate"):
+
+    prompt = f"""
+Translate the following English into {language}.
+
+Only return translated text.
+
+Text:
+
+{translate_text}
+"""
+
+    try:
+
+        response = client.models.generate_content(
+
+            model="gemini-3.6-flash",
+
+            contents=prompt
+
+        )
+
+        st.success(response.text)
+
+    except Exception as e:
+
+        st.error(e)
+
+
+# ==========================================================
+# IELTS PRACTICE
+# ==========================================================
+
+st.divider()
+
+st.subheader("📝 IELTS Speaking Practice")
+
+if st.button("Generate IELTS Question"):
+
+    prompt = """
+Generate one IELTS Speaking Part 2 question.
+"""
+
+    try:
+
+        response = client.models.generate_content(
+
+            model="gemini-3.6-flash",
+
+            contents=prompt
+
+        )
+
+        st.info(response.text)
+
+    except Exception as e:
+
+        st.error(e)
+
+
+# ==========================================================
+# DAILY QUIZ
+# ==========================================================
+
+st.divider()
+
+st.subheader("🎯 Daily English Quiz")
+
+quiz = {
+
+"Which sentence is correct?":[
+
+"I has a pen.",
+
+"I have a pen.",
+
+"I having pen.",
+
+"I am has pen."
+
+]
+
+}
+
+question = list(quiz.keys())[0]
+
+st.write(question)
+
+answer = st.radio(
+
+"Choose",
+
+quiz[question]
+
+)
+
+if st.button("Submit Quiz"):
+
+    if answer == "I have a pen.":
+
+        st.success("Correct!")
+
+        st.session_state.quiz_score += 1
+
+    else:
+
+        st.error("Incorrect")
+
+
+st.metric(
+
+"Quiz Score",
+
+st.session_state.quiz_score
+
+)
+
+
+# ==========================================================
+# SAVE HISTORY
+# ==========================================================
+
+st.divider()
+
+st.subheader("💾 Save Progress")
+
+if st.button("Save Progress"):
+
+    data = {
+
+        "messages":st.session_state.messages,
+
+        "vocabulary":st.session_state.vocabulary,
+
+        "xp":st.session_state.xp,
+
+        "quiz":st.session_state.quiz_score,
+
+        "date":str(datetime.datetime.now())
+
+    }
+
+    with open("progress.json","w") as f:
+
+        json.dump(data,f,indent=4)
+
+    st.success("Progress Saved")
+
+
+if os.path.exists("progress.json"):
+
+    with open("progress.json","rb") as f:
+
+        st.download_button(
+
+            "⬇ Download Progress",
+
+            f,
+
+            file_name="progress.json"
+
+        )
+
+
+# ==========================================================
+# PERFORMANCE HISTORY
+# ==========================================================
+
+st.divider()
+
+st.subheader("📊 Performance")
+
+st.session_state.history.append({
+
+    "XP":st.session_state.xp,
+
+    "Vocabulary":len(st.session_state.vocabulary),
+
+    "Quiz":st.session_state.quiz_score
+
+})
+
+history = st.session_state.history
+
+if len(history)>0:
+
+    import pandas as pd
+
+    df = pd.DataFrame(history)
+
+    st.line_chart(df)
+
+
+# ==========================================================
+# MOTIVATION
+# ==========================================================
+
+quotes=[
+
+"Practice makes perfect.",
+
+"Never stop learning.",
+
+"Speak English every day.",
+
+"Confidence comes with practice.",
+
+"Small progress every day leads to big success."
+
+]
+
+st.success(random.choice(quotes))
+
+
+# ==========================================================
+# FOOTER
+# ==========================================================
+
+st.divider()
+
+st.markdown(
+"""
+<center>
+
+### 🚀 AI English Tutor
+
+Powered by Google Gemini 3.6 Flash
+
+Made with ❤️ using Streamlit
+
+</center>
+""",
+unsafe_allow_html=True
+)

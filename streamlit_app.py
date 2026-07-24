@@ -235,10 +235,10 @@ Schema:
 
                         models = client.models.list()
 
-for model in models:
-    st.write(model.name)
-
-st.stop()
+                        for model in models:
+                            st.write(model.name)
+                        
+                        st.stop()
 
                         text=response.text.strip()
 

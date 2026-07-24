@@ -29,6 +29,13 @@ except Exception:
     )
 
 client = None
+if st.sidebar.button("Show Models"):
+    try:
+        models = client.models.list()
+        for m in models:
+            st.sidebar.write(m.name)
+    except Exception as e:
+        st.sidebar.error(e)
 
 if api_key:
     client = genai.Client(api_key=api_key)

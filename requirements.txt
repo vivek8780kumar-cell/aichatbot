@@ -1,4 +1,2 @@
-streamlit>=1.38.0
 google-genai>=1.30.0
-pandas
-plotly
+streamlit>=1.38.0

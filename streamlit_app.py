@@ -15,9 +15,14 @@ st.title("🤖 Streamlit AI English Tutor")
 st.caption("Conversational Practice • Instant Grammar • Vocabulary Building")
 
 # Configure Gemini API Key
-api_key = os.environ.get("GEMINI_API_KEY")
-if not api_key:
-    api_key = st.sidebar.text_input("Gemini API Key", type="password", help="Enter your Gemini API key from AI Studio")
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
+except Exception:
+    api_key = st.sidebar.text_input(
+        "Gemini API Key",
+        type="password",
+        help="Enter your Gemini API key"
+    )
 
 if api_key:
     genai.configure(api_key=api_key)
@@ -90,7 +95,7 @@ with tab_chat:
             with st.chat_message("assistant"):
                 with st.spinner("AI Tutor is thinking & analyzing grammar..."):
                     try:
-                        model = genai.GenerativeModel("gemini-1.5-flash")
+                        model = genai.GenerativeModel("gemini-2.5-flash")
                         prompt = f"""You are an English language tutor.
 Level: {proficiency}
 Topic: {topic}

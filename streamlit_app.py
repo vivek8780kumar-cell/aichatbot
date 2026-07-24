@@ -233,13 +233,12 @@ Schema:
 
                     try:
 
-                        response = client.models.generate_content(
+                        models = client.models.list()
 
-                            model="gemini-2.5-flash",
+for model in models:
+    st.write(model.name)
 
-                            contents=prompt
-
-                        )
+st.stop()
 
                         text=response.text.strip()
 

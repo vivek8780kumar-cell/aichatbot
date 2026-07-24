@@ -1,2 +1,6 @@
+streamlit
 google-genai>=1.30.0
-streamlit>=1.38.0
+pandas
+plotly
+streamlit-mic-recorder
+fpdf2

@@ -2,178 +2,144 @@ import streamlit as st
 import json
 from google import genai
 
-# ----------------------------
+# ---------------------------------------
 # PAGE CONFIG
-# ----------------------------
+# ---------------------------------------
 
 st.set_page_config(
     page_title="🤖 AI English Tutor",
     page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
 st.title("🤖 AI English Tutor")
-st.caption("Practice Speaking • Grammar • Vocabulary")
+st.caption("Learn English with AI • Grammar • Vocabulary • Conversation")
 
-# ----------------------------
-# API KEY
-# ----------------------------
+# ---------------------------------------
+# LOAD API KEY
+# ---------------------------------------
 
 try:
-    api_key = st.secrets["GEMINI_API_KEY"]
+    API_KEY = st.secrets["GEMINI_API_KEY"]
 except Exception:
-    api_key = st.sidebar.text_input(
+    API_KEY = st.sidebar.text_input(
         "Gemini API Key",
         type="password"
     )
 
 client = None
-if st.sidebar.button("Show Models"):
-    try:
-        models = client.models.list()
-        for m in models:
-            st.sidebar.write(m.name)
-    except Exception as e:
-        st.sidebar.error(e)
 
-if api_key:
-    client = genai.Client(api_key=api_key)
+if API_KEY:
+    client = genai.Client(api_key=API_KEY)
 
-# ----------------------------
+# ---------------------------------------
 # SIDEBAR
-# ----------------------------
+# ---------------------------------------
 
-st.sidebar.title("⚙️ Tutor Settings")
+st.sidebar.title("⚙ Tutor Settings")
 
-proficiency = st.sidebar.selectbox(
+level = st.sidebar.selectbox(
     "English Level",
     [
-        "Beginner (A1-A2)",
-        "Intermediate (B1-B2)",
-        "Advanced (C1-C2)"
+        "Beginner",
+        "Intermediate",
+        "Advanced"
     ]
 )
 
 topic = st.sidebar.selectbox(
-    "Practice Topic",
+    "Conversation Topic",
     [
-        "Casual Conversation",
-        "Job Interview",
+        "Daily Conversation",
         "Travel",
-        "Restaurant",
-        "Business",
+        "Job Interview",
         "Technology",
-        "Grammar",
-        "Vocabulary"
+        "Business",
+        "Restaurant",
+        "Grammar Practice"
     ]
 )
 
-persona = st.sidebar.selectbox(
-    "Tutor Personality",
+teacher = st.sidebar.selectbox(
+    "Tutor Style",
     [
-        "Friendly Tutor",
-        "Strict Teacher",
-        "English Buddy",
-        "Business Coach"
+        "Friendly",
+        "Strict",
+        "Professional",
+        "Motivational"
     ]
 )
 
-enable_grammar = st.sidebar.checkbox(
-    "Grammar Check",
+grammar_check = st.sidebar.checkbox(
+    "Grammar Correction",
     True
 )
 
-enable_vocab = st.sidebar.checkbox(
+vocab_mode = st.sidebar.checkbox(
     "Vocabulary Suggestions",
     True
 )
 
-# ----------------------------
-# SESSION STATE
-# ----------------------------
+# ---------------------------------------
+# SESSION
+# ---------------------------------------
 
 if "messages" not in st.session_state:
 
     st.session_state.messages = [
+
         {
             "role":"assistant",
-            "content":"👋 Hello! I'm your AI English Tutor.\n\nLet's improve your English together!"
+            "content":"👋 Hello!\n\nI'm your AI English Tutor.\n\nLet's improve your English together!"
         }
+
     ]
 
-if "vocab_bank" not in st.session_state:
-    st.session_state.vocab_bank = []
+if "vocabulary" not in st.session_state:
+    st.session_state.vocabulary = []
 
-# ----------------------------
+# ---------------------------------------
 # TABS
-# ----------------------------
+# ---------------------------------------
 
-tab_chat, tab_vocab, tab_grammar = st.tabs(
+chat_tab, vocab_tab, grammar_tab = st.tabs(
     [
         "💬 Chat",
         "📚 Vocabulary",
         "✍ Grammar"
     ]
-)# ==========================
+)# ==========================================================
 # CHAT TAB
-# ==========================
+# ==========================================================
 
-with tab_chat:
+with chat_tab:
 
-    # Display chat history
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+    st.subheader("💬 Chat with Your AI English Tutor")
 
-            if msg.get("grammar"):
+    # Show chat history
+    for message in st.session_state.messages:
 
-                g = msg["grammar"]
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-                with st.expander("📖 Grammar Feedback"):
-
-                    st.write(f"**Grammar Score:** {g.get('score',100)}/100")
-
-                    if g.get("hasErrors"):
-
-                        st.success(
-                            f"✅ Correct Sentence:\n\n{g.get('correctedSentence')}"
-                        )
-
-                        for c in g.get("corrections", []):
-
-                            st.info(
-                                f"**{c.get('originalText')}** → **{c.get('correctedText')}**\n\n{c.get('explanation')}"
-                            )
-
-                    if g.get("betterPhrasing"):
-
-                        st.warning(
-                            "💡 Better English:\n\n"
-                            + g.get("betterPhrasing")
-                        )
-
-    # Chat input
-
-    user_input = st.chat_input(
-        "Type your English message..."
-    )
-
-    if user_input:
+    # User input
+    if prompt := st.chat_input("Type your message..."):
 
         st.session_state.messages.append(
             {
-                "role":"user",
-                "content":user_input
+                "role": "user",
+                "content": prompt
             }
         )
 
         with st.chat_message("user"):
-            st.markdown(user_input)
+            st.markdown(prompt)
 
+        # If API key missing
         if client is None:
 
-            st.error("Please enter your Gemini API Key.")
+            with st.chat_message("assistant"):
+                st.error("Please provide your Gemini API Key.")
 
         else:
 
@@ -181,194 +147,223 @@ with tab_chat:
 
                 with st.spinner("Thinking..."):
 
-                    prompt=f"""
-You are an expert English Tutor.
+                    system_prompt = f"""
+You are an English Tutor.
 
 Student Level:
-{proficiency}
+{level}
+
+Tutor Style:
+{teacher}
 
 Conversation Topic:
 {topic}
 
-Tutor Style:
-{persona}
-
-Student Message:
-{user_input}
-
-Return ONLY valid JSON.
-
-Do not use markdown.
-
-Schema:
+Always answer in JSON format exactly like this:
 
 {{
-"reply":"string",
-
-"grammar":{{
-"score":95,
-"hasErrors":true,
-"correctedSentence":"string",
-"betterPhrasing":"string",
-
-"corrections":[
-{{
-"originalText":"string",
-"correctedText":"string",
-"explanation":"string"
-}}
-]
-}},
-
+"reply":"Your conversational reply",
+"grammar":"Corrected version of user's sentence",
+"mistakes":["mistake1","mistake2"],
 "vocabulary":[
-{{
-"word":"string",
-"definition":"string",
-"cefr":"A1"
-}}
+{{"word":"example","meaning":"meaning"}},
+{{"word":"another","meaning":"meaning"}}
 ]
-
 }}
+
+Rules:
+
+1. Reply naturally.
+2. Correct grammar.
+3. Explain mistakes briefly.
+4. Give 2-5 useful vocabulary words.
+5. JSON only.
 """
 
                     try:
 
-                        models = client.models.list()
-
-                        for model in models:
-                            st.write(model.name)
-                        
-                        st.stop()
-
-                        text=response.text.strip()
-
-                        if text.startswith("```"):
-
-                            text=text.replace("```json","")
-
-                            text=text.replace("```","")
-
-                        data=json.loads(text)
-
-                        st.markdown(data["reply"])
-
-                        if data.get("grammar"):
-
-                            g=data["grammar"]
-
-                            with st.expander("📖 Grammar Feedback"):
-
-                                st.write(
-                                    f"Grammar Score: {g.get('score',100)}/100"
-                                )
-
-                                if g.get("hasErrors"):
-
-                                    st.success(
-                                        g.get("correctedSentence")
-                                    )
-
-                                    for c in g.get("corrections",[]):
-
-                                        st.info(
-                                            f"{c['originalText']} ➜ {c['correctedText']}"
-                                        )
-
-                                        st.caption(
-                                            c["explanation"]
-                                        )
-
-                                if g.get("betterPhrasing"):
-
-                                    st.warning(
-                                        g["betterPhrasing"]
-                                    )
-
-                        st.session_state.messages.append(
-
-                            {
-                                "role":"assistant",
-
-                                "content":data["reply"],
-
-                                "grammar":data["grammar"]
-
-                            }
-
+                        response = client.models.generate_content(
+                            model="gemini-3.6-flash",
+                            contents=system_prompt + "\n\nStudent: " + prompt
                         )
 
-                        if data.get("vocabulary"):
+                        raw = response.text.strip()
 
-                            st.session_state.vocab_bank.extend(
+                        # Remove markdown if Gemini wraps JSON
+                        raw = raw.replace("```json", "")
+                        raw = raw.replace("```", "").strip()
 
-                                data["vocabulary"]
+                        try:
+                            data = json.loads(raw)
 
-                            )
+                        except Exception:
+                            data = {
+                                "reply": raw,
+                                "grammar": "",
+                                "mistakes": [],
+                                "vocabulary": []
+                            }
+
+                        reply = data.get("reply", "")
+                        grammar = data.get("grammar", "")
+                        mistakes = data.get("mistakes", [])
+                        vocabulary = data.get("vocabulary", [])
+
+                        st.markdown(reply)
+
+                        # Save assistant reply
+                        st.session_state.messages.append(
+                            {
+                                "role": "assistant",
+                                "content": reply
+                            }
+                        )
+
+                        # Grammar Section
+                        if grammar_check and grammar:
+
+                            st.divider()
+                            st.markdown("### ✍ Grammar Correction")
+                            st.success(grammar)
+
+                        # Mistakes
+                        if mistakes:
+
+                            st.markdown("### ❌ Mistakes")
+
+                            for m in mistakes:
+                                st.write("•", m)
+
+                        # Vocabulary
+                        if vocab_mode:
+
+                            if vocabulary:
+
+                                st.divider()
+                                st.markdown("### 📚 New Vocabulary")
+
+                                for item in vocabulary:
+
+                                    word = item.get("word", "")
+                                    meaning = item.get("meaning", "")
+
+                                    st.info(f"**{word}** — {meaning}")
+
+                                    st.session_state.vocabulary.append(
+                                        {
+                                            "word": word,
+                                            "meaning": meaning
+                                        }
+                                    )
 
                     except Exception as e:
 
-                        st.error(str(e))# ==========================================
+                        st.error(e)# ==========================================================
 # VOCABULARY TAB
-# ==========================================
+# ==========================================================
 
-with tab_vocab:
+with vocab_tab:
 
-    st.subheader("📚 Vocabulary Bank")
+    st.subheader("📚 Vocabulary Notebook")
 
-    if len(st.session_state.vocab_bank) == 0:
+    if len(st.session_state.vocabulary) == 0:
 
-        st.info("No vocabulary collected yet.\n\nStart chatting to build your vocabulary.")
+        st.info("No vocabulary collected yet. Start chatting!")
 
     else:
 
-        words = {}
+        unique_words = []
 
-        for item in st.session_state.vocab_bank:
+        seen = set()
 
-            if item["word"] not in words:
+        for item in st.session_state.vocabulary:
 
-                words[item["word"]] = item
+            word = item.get("word", "").lower()
 
-        for word in words.values():
+            if word not in seen:
 
-            with st.container():
+                seen.add(word)
+                unique_words.append(item)
 
-                st.markdown("### 📖 " + word["word"])
+        search = st.text_input(
+            "🔍 Search a word"
+        )
 
-                st.write("Meaning")
+        if search:
 
-                st.success(word["definition"])
+            filtered = []
 
-                st.write("Level")
+            for item in unique_words:
 
-                st.info(word.get("cefr","A1"))
+                if search.lower() in item["word"].lower():
 
-                st.divider()
+                    filtered.append(item)
+
+        else:
+
+            filtered = unique_words
+
+        st.write(f"### Total Words : {len(filtered)}")
+
+        for item in filtered:
+
+            st.markdown(
+                f"""
+**📖 {item['word']}**
+
+Meaning:
+{item['meaning']}
+"""
+            )
+
+            st.divider()
+
+        import pandas as pd
+
+        df = pd.DataFrame(filtered)
+
+        csv = df.to_csv(index=False).encode("utf-8")
+
+        st.download_button(
+
+            "⬇ Download Vocabulary",
+
+            csv,
+
+            file_name="vocabulary.csv",
+
+            mime="text/csv"
+
+        )
+
+        if st.button("🗑 Clear Vocabulary"):
+
+            st.session_state.vocabulary = []
+
+            st.rerun()
 
 
-# ==========================================
+# ==========================================================
 # GRAMMAR TAB
-# ==========================================
+# ==========================================================
 
-with tab_grammar:
+with grammar_tab:
 
-    st.subheader("✍ AI Grammar Checker")
+    st.subheader("✍ Grammar Checker")
 
     grammar_text = st.text_area(
 
-        "Write anything in English",
+        "Write your English here",
 
         height=200
 
     )
 
-    check = st.button("🚀 Check Grammar")
+    if st.button("Check Grammar"):
 
-    if check:
+        if grammar_text.strip() == "":
 
-        if grammar_text == "":
-
-            st.warning("Please write something.")
+            st.warning("Please enter some text.")
 
         elif client is None:
 
@@ -376,170 +371,110 @@ with tab_grammar:
 
         else:
 
-            prompt = f"""
+            with st.spinner("Checking..."):
 
-You are an English Grammar Teacher.
-
-Correct grammar.
-
-Explain every mistake.
+                prompt = f"""
+You are an English Grammar Expert.
 
 Return ONLY JSON.
 
-Schema
-
 {{
-"correct":"string",
-
-"score":95,
-
-"mistakes":[
-{{
-"wrong":"string",
-
-"correct":"string",
-
-"reason":"string"
-}}
+"corrected":"",
+"errors":[
+""
 ],
-
 "tips":[
-"tip1",
-"tip2",
-"tip3"
+""
 ]
-
 }}
 
-Student Text
+Correct this text:
 
 {grammar_text}
-
 """
 
-            try:
+                try:
 
-                response = client.models.generate_content(
+                    response = client.models.generate_content(
 
-                    model="gemini-2.5-flash",
+                        model="gemini-3.6-flash",
 
-                    contents=prompt
-
-                )
-
-                text = response.text.strip()
-
-                if text.startswith("```"):
-
-                    text = text.replace("```json","")
-
-                    text = text.replace("```","")
-
-                result = json.loads(text)
-
-                st.success("✅ Correct Sentence")
-
-                st.write(result["correct"])
-
-                st.progress(result["score"]/100)
-
-                st.write("Grammar Score:",result["score"])
-
-                st.subheader("Mistakes")
-
-                for m in result["mistakes"]:
-
-                    st.error(
-
-                        f"❌ {m['wrong']}"
+                        contents=prompt
 
                     )
 
-                    st.success(
+                    raw = response.text.strip()
 
-                        f"✅ {m['correct']}"
+                    raw = raw.replace("```json","")
+                    raw = raw.replace("```","")
 
-                    )
+                    data = json.loads(raw)
 
-                    st.caption(
+                    st.success("Corrected Text")
 
-                        m["reason"]
+                    st.write(data.get("corrected",""))
 
-                    )
+                    st.divider()
 
-                st.subheader("Tips")
+                    st.markdown("### ❌ Errors")
 
-                for tip in result["tips"]:
+                    for e in data.get("errors",[]):
 
-                    st.info(tip)
+                        st.write("•", e)
 
-            except Exception as e:
+                    st.divider()
 
-                st.error(e)
+                    st.markdown("### 💡 Tips")
+
+                    for t in data.get("tips",[]):
+
+                        st.write("•", t)
+
+                except Exception as e:
+
+                    st.error(e)
 
 
-# ==========================================
-# FOOTER
-# ==========================================
+# ==========================================================
+# SIDEBAR UTILITIES
+# ==========================================================
 
-st.divider()
+st.sidebar.divider()
 
-col1,col2,col3,col4 = st.columns(4)
+st.sidebar.subheader("📊 Statistics")
 
-with col1:
+st.sidebar.metric(
 
-    st.metric(
+    "Messages",
 
-        "Messages",
-
-        len(st.session_state.messages)-1
-
-    )
-
-with col2:
-
-    st.metric(
-
-        "Vocabulary",
-
-        len(st.session_state.vocab_bank)
-
-    )
-
-with col3:
-
-    if client:
-
-        st.metric(
-
-            "AI",
-
-            "Connected"
-
-        )
-
-    else:
-
-        st.metric(
-
-            "AI",
-
-            "Offline"
-
-        )
-
-with col4:
-
-    st.metric(
-
-        "Tutor",
-
-        "Gemini"
-
-    )
-
-st.caption(
-
-    "🤖 AI English Tutor | Built using Streamlit + Google Gemini"
+    len(st.session_state.messages)
 
 )
+
+st.sidebar.metric(
+
+    "Vocabulary",
+
+    len(st.session_state.vocabulary)
+
+)
+
+st.sidebar.divider()
+
+if st.sidebar.button("🧹 Clear Chat"):
+
+    st.session_state.messages = [
+
+        {
+
+            "role":"assistant",
+
+            "content":"👋 Hello! I'm your AI English Tutor."
+
+        }
+
+    ]
+
+    st.rerun()
+
+st.sidebar.success("✅ Gemini 3.6 Flash Connected")

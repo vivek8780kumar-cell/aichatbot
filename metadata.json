@@ -1,0 +1,6 @@
+{
+  "name": "AI English Tutor",
+  "description": "An interactive AI English learning chatbot featuring conversational practice, instant grammar feedback, and vocabulary building.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
